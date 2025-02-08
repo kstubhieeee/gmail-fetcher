@@ -4,6 +4,8 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+import base64
+import email
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
@@ -49,8 +51,28 @@ def main():
         else:
             print("Messages:")
             for message in messages:
-                msg = service.users().messages().get(userId='me', id=message['id']).execute()
-                print('Message snippet: %s' % msg['snippet'])
+                msg = service.users().messages().get(userId='me', id=message['id'], format='full').execute()
+                
+                # Get the subject
+                subject = None
+                for header in msg['payload']['headers']:
+                    if header['name'] == 'Subject':
+                        subject = header['value']
+                
+                # Get the body
+                body = ''
+                if 'data' in msg['payload']['parts'][0]['body']:
+                    body = base64.urlsafe_b64decode(msg['payload']['parts'][0]['body']['data']).decode('utf-8')
+                else:
+                    body = base64.urlsafe_b64decode(msg['payload']['body']['data']).decode('utf-8')
+
+                # Get the read/unread status
+                is_read = 'UNREAD' not in msg['labelIds']
+
+                print(f"Subject: {subject}")
+                print(f"Body: {body}")
+                print(f"Read/Unread: {'Read' if is_read else 'Unread'}")
+                print("--------------------------------------------------")
 
     except HttpError as error:
         # Handle errors from Gmail API
