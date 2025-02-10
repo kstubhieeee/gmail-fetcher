@@ -7,7 +7,6 @@ from googleapiclient.errors import HttpError
 import base64
 import email
 
-# If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
 def main():
@@ -15,13 +14,10 @@ def main():
     Lists the user's Gmail labels.
     """
     creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
+   
     if os.path.exists("token.json"):
         creds = Credentials.from_authorized_user_file("token.json", SCOPES)
     
-    # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
@@ -36,12 +32,11 @@ def main():
                 print("Please download it from the Google Cloud Console and place it in the same directory as this script.")
                 return
         
-        # Save the credentials for the next run
         with open("token.json", "w") as token:
             token.write(creds.to_json())
 
     try:
-        # Call the Gmail API
+       
         service = build("gmail", "v1", credentials=creds)
         results = service.users().messages().list(userId='me', q='from:onlinelearner01learn@gmail.com').execute()
         messages = results.get('messages', [])
@@ -53,20 +48,17 @@ def main():
             for message in messages:
                 msg = service.users().messages().get(userId='me', id=message['id'], format='full').execute()
                 
-                # Get the subject
                 subject = None
                 for header in msg['payload']['headers']:
                     if header['name'] == 'Subject':
                         subject = header['value']
                 
-                # Get the body
                 body = ''
                 if 'data' in msg['payload']['parts'][0]['body']:
                     body = base64.urlsafe_b64decode(msg['payload']['parts'][0]['body']['data']).decode('utf-8')
                 else:
                     body = base64.urlsafe_b64decode(msg['payload']['body']['data']).decode('utf-8')
 
-                # Get the read/unread status
                 is_read = 'UNREAD' not in msg['labelIds']
 
                 print(f"Subject: {subject}")
@@ -75,7 +67,7 @@ def main():
                 print("--------------------------------------------------")
 
     except HttpError as error:
-        # Handle errors from Gmail API
+        
         print(f"An error occurred: {error}")
 
 if __name__ == "__main__":
